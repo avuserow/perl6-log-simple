@@ -1,7 +1,7 @@
 module Log::Simple;
 
 role Log::Simple::Appender {
-	method append($message) {!!! "append unimplemented"}
+	method append($message) {...}
 	method close() {}
 }
 
@@ -17,10 +17,27 @@ class Log::Simple::Appender::Handle does Log::Simple::Appender {
 	}
 }
 
+class Log::Simple::Appender::File does Log::Simple::Appender {
+	has IO::Handle $!fh;
+
+	submethod BUILD(:$file!) {
+		$!fh = open($file, :a);
+	}
+
+	method append($message) {
+		$!fh.say($message);
+	}
+
+	method close() {
+		$!fh.close();
+	}
+}
+
 enum Level <TRACE DEBUG INFO WARNING ERROR FATAL OFF>;
 
 # Set up a default route for log messages, where everything goes to the screen
 # TODO: add route configurability based on package or similar
+# TODO: add multiple route support
 my $route = {
 	:level(TRACE),
 	:appender(Log::Simple::Appender::Handle.new(:handle($*ERR)))
