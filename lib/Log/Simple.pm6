@@ -38,17 +38,18 @@ enum Level <TRACE DEBUG INFO WARNING ERROR FATAL OFF>;
 # Set up a default route for log messages, where everything goes to the screen
 # TODO: add route configurability based on package or similar
 # TODO: add multiple route support
-my $route = {
+my $routes = {};
+$routes<default> = {
 	:level(INFO),
 	:appender(Log::Simple::Appender::Handle.new(:handle($*ERR)))
 };
 
-our sub LOG(Level $level, $msg) {
-	return if $level < $route<level>;
+our sub LOG(Level $level, $msg, :$backtrace-depth=1) {
+	return if $level < $routes<default><level>;
 	die "You cannot log at the OFF level" if $level == OFF;
-	my $caller = grep(!*.is-setting, Backtrace.new)[1];
+	my $caller = grep(!*.is-setting, Backtrace.new)[$backtrace-depth];
 	my $date = DateTime.now;
-	$route<appender>.append("[$level] $date $caller.file():$caller.line(): $msg");
+	$routes<default><appender>.append("[$level] $date $caller.file():$caller.line(): $msg");
 }
 
 our &trace is export = &LOG.assuming(TRACE);
@@ -58,12 +59,20 @@ our &warning is export = &LOG.assuming(WARNING);
 our &error is export = &LOG.assuming(ERROR);
 our &fatal is export = &LOG.assuming(FATAL);
 
-our sub route(Log::Simple::Appender $appender?, Level $min-level?) {
+our proto route($route, |) {*}
+
+our multi route($route, Log::Simple::Appender $appender, Level $level?) {
+	warn 'WARNING: Non-fallback route NYI!' if $route;
 	if $appender {
-		$route<appender>.close();
-		$route<appender> = $appender;
+		$routes<default><appender>.close();
+		$routes<default><appender> = $appender;
 	}
-	if $min-level {
-		$route<level> = $min-level;
+	if $level {
+		$routes<default><level> = $level;
 	}
+}
+
+our multi route($route, Level $level) {
+	warn 'WARNING: Non-fallback route NYI!' if $route;
+	$routes<default><level> = $level;
 }
