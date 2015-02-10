@@ -39,7 +39,7 @@ enum Level <TRACE DEBUG INFO WARNING ERROR FATAL OFF>;
 # TODO: add route configurability based on package or similar
 # TODO: add multiple route support
 my $route = {
-	:level(TRACE),
+	:level(INFO),
 	:appender(Log::Simple::Appender::Handle.new(:handle($*ERR)))
 };
 
