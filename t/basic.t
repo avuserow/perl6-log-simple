@@ -64,4 +64,18 @@ is $appender.logs[6]<level>, 'DEBUG';
 is $appender.logs[7]<msg>, 'another trace log';
 is $appender.logs[7]<level>, 'TRACE';
 
+# Get a new appender, and this time set both the logging level and appender
+$appender = ToArray.new;
+Log::Simple::route('', $appender, Log::Simple::WARNING);
+
+for Log::Simple::<TRACE DEBUG INFO> -> $level {
+	Log::Simple::LOG($level, "Logging at $level");
+}
+is +$appender.logs, 0;
+for Log::Simple::<WARNING ERROR FATAL> -> $level {
+	Log::Simple::LOG($level, "Logging at $level");
+}
+is +$appender.logs, 3;
+
+
 done;

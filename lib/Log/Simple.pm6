@@ -44,7 +44,7 @@ $routes<default> = {
 	:appender(Log::Simple::Appender::Handle.new(:handle($*ERR)))
 };
 
-our sub LOG(Level $level, $msg, :$backtrace-depth=1) {
+our sub LOG(Level $level, $msg, Int :$backtrace-depth=1) {
 	return if $level < $routes<default><level>;
 	die "You cannot log at the OFF level" if $level == OFF;
 	my $caller = grep(!*.is-setting, Backtrace.new)[$backtrace-depth];
@@ -59,20 +59,20 @@ our &warning is export = &LOG.assuming(WARNING);
 our &error is export = &LOG.assuming(ERROR);
 our &fatal is export = &LOG.assuming(FATAL);
 
-our proto route($route, |) {*}
+our proto route($source, |) {*}
 
-our multi route($route, Log::Simple::Appender $appender, Level $level?) {
-	warn 'WARNING: Non-fallback route NYI!' if $route;
+our multi route($source, Log::Simple::Appender $appender, Level $level?) {
+	warn 'WARNING: Non-fallback route NYI!' if $source;
 	if $appender {
 		$routes<default><appender>.close();
 		$routes<default><appender> = $appender;
 	}
-	if $level {
+	if $level.defined {
 		$routes<default><level> = $level;
 	}
 }
 
-our multi route($route, Level $level) {
-	warn 'WARNING: Non-fallback route NYI!' if $route;
+our multi route($source, Level $level) {
+	warn 'WARNING: Non-fallback route NYI!' if $source;
 	$routes<default><level> = $level;
 }

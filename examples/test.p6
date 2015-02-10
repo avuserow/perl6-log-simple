@@ -2,7 +2,7 @@ use lib <lib>;
 
 use Log::Simple;
 
-Log::Simple::route(Log::Simple::Appender::File.new(:file<foo.log>), Log::Simple::TRACE);
+Log::Simple::route('', Log::Simple::Appender::File.new(:file<foo.log>), Log::Simple::TRACE);
 
 trace "foo";
 
