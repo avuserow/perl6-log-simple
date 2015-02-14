@@ -1,6 +1,10 @@
 module Log::Simple;
 
+enum Level <TRACE DEBUG INFO WARNING ERROR FATAL OFF>;
+
 role Log::Simple::Appender {
+	has Level $.level;
+
 	method append($message) {...}
 	method close() {}
 }
@@ -33,23 +37,25 @@ class Log::Simple::Appender::File does Log::Simple::Appender {
 	}
 }
 
-enum Level <TRACE DEBUG INFO WARNING ERROR FATAL OFF>;
-
 # Set up a default route for log messages, where everything goes to the screen
 # TODO: add route configurability based on package or similar
 # TODO: add multiple route support
 my $routes = {};
-$routes<default> = {
-	:level(INFO),
-	:appender(Log::Simple::Appender::Handle.new(:handle($*ERR)))
-};
+$routes<default> = Log::Simple::Appender::Handle.new(:level(INFO), :handle($*ERR));
+
+my $logstream = Supply.new;
+$logstream.act(-> $msg {
+	$routes<default>.append($msg);
+});
 
 our sub LOG(Level $level, $msg, Int :$backtrace-depth=1) {
-	return if $level < $routes<default><level>;
+	return if $level < $routes<default>.level;
 	die "You cannot log at the OFF level" if $level == OFF;
+	# XXX: replace me with caller() or similar when it works
 	my $caller = grep(!*.is-setting, Backtrace.new)[$backtrace-depth];
 	my $date = DateTime.now;
-	$routes<default><appender>.append("[$level] $date $caller.file():$caller.line(): $msg");
+	my $text = "[$level] $date $caller.file():$caller.line(): $msg";
+	$logstream.emit($text);
 }
 
 our &trace is export = &LOG.assuming(TRACE);
@@ -61,18 +67,8 @@ our &fatal is export = &LOG.assuming(FATAL);
 
 our proto route($source, |) {*}
 
-our multi route($source, Log::Simple::Appender $appender, Level $level?) {
+our multi route($source, Log::Simple::Appender $appender) {
 	warn 'WARNING: Non-fallback route NYI!' if $source;
-	if $appender {
-		$routes<default><appender>.close();
-		$routes<default><appender> = $appender;
-	}
-	if $level.defined {
-		$routes<default><level> = $level;
-	}
-}
-
-our multi route($source, Level $level) {
-	warn 'WARNING: Non-fallback route NYI!' if $source;
-	$routes<default><level> = $level;
+	$routes<default><appender>.close();
+	$routes<default><appender> = $appender;
 }
